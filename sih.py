@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'farmeasy-combined-master-2026-key'
 
 # Fast2SMS API Configuration (Replace with your actual Fast2SMS API authorization key)
-FAST2SMS_API_KEY = "BYTbQqmcVrA78NJkW6GPKjzn4vEF3X1ZaRUgf2tuhDlCSxsy9i8OPw3bpYAXkid2Fav1qujKmWQozLxT"
+FAST2SMS_API_KEY='BYTbQqmcVrA78NJkW6GPKjzn4vEF3X1ZaRUgf2tuhDlCSxsy9i8OPw3bpYAXkid2Fav1qujKmWQozLxT'
 
 # Comprehensive Karnataka APMC Network
 KARNATAKA_APMC_CENTRES = [

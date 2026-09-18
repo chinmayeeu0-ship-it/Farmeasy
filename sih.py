@@ -2,11 +2,15 @@ import os
 import time
 import random
 import uuid
+import requests
 from datetime import datetime, timedelta
 from flask import Flask, render_template_string, request, jsonify
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'farmeasy-combined-master-2026-key'
+
+# Fast2SMS API Configuration (Replace with your actual Fast2SMS API authorization key)
+FAST2SMS_API_KEY = "BYTbQqmcVrA78NJkW6GPKjzn4vEF3X1ZaRUgf2tuhDlCSxsy9i8OPw3bpYAXkid2Fav1qujKmWQozLxT"
 
 # Comprehensive Karnataka APMC Network
 KARNATAKA_APMC_CENTRES = [
@@ -136,6 +140,34 @@ def generate_unique_token():
             return token_id
 
 
+def send_fast2sms_otp(phone_number, otp_code):
+    """Sends SMS via Fast2SMS DLT/Quick SMS API endpoint."""
+    if FAST2SMS_API_KEY == "YOUR_FAST2SMS_API_KEY_HERE":
+        print(f"[Fast2SMS Simulated] OTP {otp_code} for {phone_number} (API Key not configured)")
+        return True
+
+    url = "https://www.fast2sms.com/dev/bulkV2"
+    payload = {
+        "route": "q",
+        "message": f"Your farmEasy verification OTP is {otp_code}. Valid for 5 minutes.",
+        "language": "english",
+        "flash": 0,
+        "numbers": phone_number,
+    }
+    headers = {
+        "authorization": FAST2SMS_API_KEY,
+        "cache-control": "no-cache"
+    }
+
+    try:
+        response = requests.post(url, data=payload, headers=headers, timeout=5)
+        res_json = response.json()
+        return res_json.get("return", False)
+    except Exception as e:
+        print(f"Fast2SMS Gateway Error: {e}")
+        return False
+
+
 # ----------------- BACKEND API ROUTES -----------------
 
 @app.route('/')
@@ -163,11 +195,19 @@ def request_otp():
 
     generated_otp = str(random.randint(1000, 9999))
     OTP_STORE[phone] = generated_otp
-    return jsonify({
-        "success": True,
-        "message": f"Real-time OTP sent to {raw_phone}: {generated_otp}",
-        "otp": generated_otp
-    })
+
+    # Trigger live Fast2SMS dispatch
+    sms_dispatched = send_fast2sms_otp(phone, generated_otp)
+
+    if sms_dispatched or FAST2SMS_API_KEY == "YOUR_FAST2SMS_API_KEY_HERE":
+        return jsonify({
+            "success": True,
+            "message": f"Real-time OTP successfully dispatched to {raw_phone} via Fast2SMS!",
+            "otp": generated_otp
+        })
+    else:
+        return jsonify({"success": False,
+                        "message": "Failed to dispatch SMS via Fast2SMS gateway. Please check API Key configuration."}), 500
 
 
 @app.route('/api/login', methods=['POST'])

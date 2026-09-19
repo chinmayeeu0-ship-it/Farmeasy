@@ -9,9 +9,6 @@ from flask import Flask, render_template_string, request, jsonify
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'farmeasy-combined-master-2026-key'
 
-# Fast2SMS Configuration (Reads from Render Environment Variable, or uses your direct key as backup)
-FAST2SMS_API_KEY = os.environ.get("FAST2SMS_API_KEY", "BYTbQqmcVrA78NJkW6GPKjzn4vEF3X1ZaRUgf2tuhDlCSxsy9i8OPw3bpYAXkid2Fav1qujKmWQozLxT")
-
 # Comprehensive Karnataka APMC Network
 KARNATAKA_APMC_CENTRES = [
     "Mandya Main APMC (Mandya)",
@@ -140,34 +137,6 @@ def generate_unique_token():
             return token_id
 
 
-def send_fast2sms_otp(phone_number, otp_code):
-    """Sends SMS via Fast2SMS DLT/Quick SMS API endpoint."""
-    if FAST2SMS_API_KEY == "YOUR_FAST2SMS_API_KEY_HERE":
-        print(f"[Fast2SMS Simulated] OTP {otp_code} for {phone_number} (API Key not configured)")
-        return True
-
-    url = "https://www.fast2sms.com/dev/bulkV2"
-    payload = {
-        "route": "q",
-        "message": f"Your farmEasy verification OTP is {otp_code}. Valid for 5 minutes.",
-        "language": "english",
-        "flash": 0,
-        "numbers": phone_number,
-    }
-    headers = {
-        "authorization": FAST2SMS_API_KEY,
-        "cache-control": "no-cache"
-    }
-
-    try:
-        response = requests.post(url, data=payload, headers=headers, timeout=5)
-        res_json = response.json()
-        return res_json.get("return", False)
-    except Exception as e:
-        print(f"Fast2SMS Gateway Error: {e}")
-        return False
-
-
 # ----------------- BACKEND API ROUTES -----------------
 
 @app.route('/')
@@ -193,21 +162,21 @@ def request_otp():
         return jsonify({"success": False,
                         "message": f"Access Denied! Mobile number {raw_phone} is not authorized for Govt Admin Access."}), 403
 
+    # Generate 4-digit OTP
     generated_otp = str(random.randint(1000, 9999))
     OTP_STORE[phone] = generated_otp
 
-    # Trigger live Fast2SMS dispatch
-    sms_dispatched = send_fast2sms_otp(phone, generated_otp)
+    # Print directly to Python console so you can view it instantly
+    print(f"\n========================================")
+    print(f" [CONSOLE OTP DEBUG] Number: {raw_phone}")
+    print(f" [CONSOLE OTP DEBUG] Generated OTP: {generated_otp}")
+    print(f"========================================\n")
 
-    if sms_dispatched or FAST2SMS_API_KEY == "YOUR_FAST2SMS_API_KEY_HERE":
-        return jsonify({
-            "success": True,
-            "message": f"Real-time OTP successfully dispatched to {raw_phone} via Fast2SMS!",
-            "otp": generated_otp
-        })
-    else:
-        return jsonify({"success": False,
-                        "message": "Failed to dispatch SMS via Fast2SMS gateway. Please check API Key configuration."}), 500
+    return jsonify({
+        "success": True,
+        "message": f"OTP successfully generated for {raw_phone}. (Check Python Console or Auto-fill)",
+        "otp": generated_otp
+    })
 
 
 @app.route('/api/login', methods=['POST'])
@@ -223,26 +192,18 @@ def login():
     if not user_key:
         return jsonify({"success": False, "message": "Please enter your mobile number or email."}), 400
 
-    if role_type == "centre" and user_key not in ALLOWED_CENTRE_NUMBERS and user_key not in [ACCOUNTS[n]["email"] for n
-                                                                                             in ALLOWED_CENTRE_NUMBERS
-                                                                                             if n in ACCOUNTS]:
-        return jsonify({"success": False,
-                        "message": "Access Denied! Your mobile number is not authorized for Procurement Centre login."}), 403
+    if role_type == "centre" and user_key not in ALLOWED_CENTRE_NUMBERS and user_key not in [ACCOUNTS[n]["email"] for n in ALLOWED_CENTRE_NUMBERS if n in ACCOUNTS]:
+        return jsonify({"success": False, "message": "Access Denied! Your mobile number is not authorized for Procurement Centre login."}), 403
 
-    if role_type == "admin" and user_key not in ALLOWED_ADMIN_NUMBERS and user_key not in [ACCOUNTS[n]["email"] for n in
-                                                                                           ALLOWED_ADMIN_NUMBERS if
-                                                                                           n in ACCOUNTS]:
-        return jsonify({"success": False,
-                        "message": "Access Denied! Your mobile number is not authorized for Govt Admin login."}), 403
+    if role_type == "admin" and user_key not in ALLOWED_ADMIN_NUMBERS and user_key not in [ACCOUNTS[n]["email"] for n in ALLOWED_ADMIN_NUMBERS if n in ACCOUNTS]:
+        return jsonify({"success": False, "message": "Access Denied! Your mobile number is not authorized for Govt Admin login."}), 403
 
     if login_mode == "otp":
         if user_key not in OTP_STORE:
-            return jsonify(
-                {"success": False, "message": "Please click 'Get OTP' first before attempting to log in."}), 400
+            return jsonify({"success": False, "message": "Please click 'Get OTP' first before attempting to log in."}), 400
 
         if OTP_STORE[user_key] != user_otp:
-            return jsonify(
-                {"success": False, "message": "Invalid OTP! Access denied due to mismatched verification code."}), 401
+            return jsonify({"success": False, "message": "Invalid OTP! Access denied due to mismatched verification code."}), 401
 
         del OTP_STORE[user_key]
 
@@ -305,8 +266,7 @@ def update_bidding_price():
             "updated_at": datetime.now().strftime("%I:%M %p")
         })
 
-    return jsonify(
-        {"success": True, "message": f"Bidding price successfully updated to ₹{new_price} for {crop} at {centre}!"})
+    return jsonify({"success": True, "message": f"Bidding price successfully updated to ₹{new_price} for {crop} at {centre}!"})
 
 
 @app.route('/api/update-base-price', methods=['POST'])
@@ -319,8 +279,7 @@ def update_base_price():
         return jsonify({"success": False, "error": "Crop and base price are required."}), 400
 
     DB["base_prices"][crop] = int(price)
-    return jsonify(
-        {"success": True, "message": f"Govt Admin Base Price for {crop} successfully updated to ₹{price} / Quintal!"})
+    return jsonify({"success": True, "message": f"Govt Admin Base Price for {crop} successfully updated to ₹{price} / Quintal!"})
 
 
 @app.route('/api/book-slot', methods=['POST'])
@@ -406,8 +365,7 @@ def update_token_status():
 
     bill = None
     if new_status == "Completed" and target_token:
-        qty = int(target_token["quantity"].split()[0]) if " " in str(target_token["quantity"]) else int(
-            target_token["quantity"])
+        qty = int(target_token["quantity"].split()[0]) if " " in str(target_token["quantity"]) else int(target_token["quantity"])
         rate = DB["base_prices"].get(target_token["crop"], 2300)
         total = qty * rate
         bill = {
@@ -1322,7 +1280,9 @@ HTML_TEMPLATE = """
             .then(res => res.json())
             .then(data => {
                 alert(data.message);
-                if (data.otp) document.getElementById('login_otp').value = data.otp;
+                if (data.otp) {
+                    document.getElementById('login_otp').value = data.otp;
+                }
             });
         }
 
@@ -1678,7 +1638,6 @@ HTML_TEMPLATE = """
                 output.src = e.target.result;
                 output.classList.remove('hidden');
 
-                // Inspect pixels for dark spots/insects
                 const img = new Image();
                 img.src = e.target.result;
                 img.onload = function() {

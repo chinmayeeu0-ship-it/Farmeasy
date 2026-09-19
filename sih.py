@@ -162,19 +162,13 @@ def request_otp():
         return jsonify({"success": False,
                         "message": f"Access Denied! Mobile number {raw_phone} is not authorized for Govt Admin Access."}), 403
 
-    # Generate 4-digit OTP
+    # Generate 4-digit OTP instantly for screen display & auto-fill
     generated_otp = str(random.randint(1000, 9999))
     OTP_STORE[phone] = generated_otp
 
-    # Print directly to Python console so you can view it instantly
-    print(f"\n========================================")
-    print(f" [CONSOLE OTP DEBUG] Number: {raw_phone}")
-    print(f" [CONSOLE OTP DEBUG] Generated OTP: {generated_otp}")
-    print(f"========================================\n")
-
     return jsonify({
         "success": True,
-        "message": f"OTP successfully generated for {raw_phone}. (Check Python Console or Auto-fill)",
+        "message": f"Your Demo OTP is: {generated_otp}",
         "otp": generated_otp
     })
 
@@ -1050,7 +1044,7 @@ HTML_TEMPLATE = """
                 quantity_lbl: "ಪ್ರಮಾಣ (ಕ್ವಿಂಟಲ್‌ಗಳಲ್ಲಿ)",
                 time_slot_lbl: "ಆದ್ಯತೆಯ ಸಮಯದ ಸ್ಲಾಟ್",
                 generate_token_btn: "ಖಾತರಿಯ ಟೋಕನ್ ರಚಿಸಿ",
-                bidding_updater_heading: "APMC ಕೌಂಟರ್ ಬಿಡ್ಡಿಂಗ್ & ಲೈವ್ ಬೆಲೆ ಪ್ರಸಾರ",
+                bidding_updater_heading: "APMC ಕೌಂಟರ್ ಬಿಡ್ಡಿంగ్ & ಲೈವ್ ಬೆಲೆ ಪ್ರಸಾರ",
                 bidding_updater_desc: "ಪ್ಲಾಟ್‌ಫಾರ್ಮ್‌ನಲ್ಲಿ ರೈತರಿಗೆ ತಕ್ಷಣವೇ ತಿಳಿಸಲು ನಿಮ್ಮ ನಿರ್ದಿಷ್ಟ ಕೇಂದ್ರ ಕೌಂಟರ್‌ನಲ್ಲಿ ನಡೆಯುತ್ತಿರುವ ಬೆಳೆ ಬಿಡ್ಡಿಂಗ್ ಬೆಲೆಗಳನ್ನು ನವೀಕರಿಸಿ.",
                 apmc_counter_lbl: "APMC ಕೌಂಟರ್",
                 bidding_crop_lbl: "ಬಿಡ್ಡಿಂಗ್ ಬೆಳೆ",
@@ -1698,7 +1692,7 @@ HTML_TEMPLATE = """
                         document.getElementById('res-score').innerText = res.score;
                         document.getElementById('res-defects').innerText = res.defects;
                         document.getElementById('res-moisture').innerText = res.moisture;
-                        document.getElementById('res-msp').innerText = `₹${res.msp.toLocaleString()} / Quintal`;
+                        document.getElementById('res-msp').innerText = `₹{res.msp.toLocaleString()} / Quintal`;
                         resBox.classList.remove('hidden');
                     }
                 });
